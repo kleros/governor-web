@@ -1,0 +1,6 @@
+type Contract @entity {
+  """
+  The singleton entity's ID, "0".
+  """
+  id: ID!
+}

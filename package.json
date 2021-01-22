@@ -1,0 +1,90 @@
+{
+  "name": "governor-web",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@commitlint/cli": "^9.1.2",
+    "@commitlint/config-conventional": "^9.1.2",
+    "@graphprotocol/graph-cli": "^0.19.0",
+    "@graphprotocol/graph-ts": "^0.19.0",
+    "@next/bundle-analyzer": "^9.5.2",
+    "babel-plugin-relay": "^10.0.1",
+    "conventional-changelog-cli": "^2.1.0",
+    "cross-env": "^7.0.2",
+    "depcheck": "^1.0.0",
+    "electron": "^11.2.0",
+    "eslint": "^7.8.1",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-graphql": "^4.0.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-react": "^7.20.5",
+    "eslint-plugin-react-hooks": "^4.0.8",
+    "eslint-plugin-regex": "^1.2.1",
+    "eslint-plugin-unicorn": "^21.0.0",
+    "get-graphql-schema": "^2.1.2",
+    "graphql": "^15.3.0",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.11",
+    "mustache": "^4.0.1",
+    "next-transpile-modules": "^6.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.0.5",
+    "relay-compiler": "^10.0.1",
+    "relay-config": "^10.0.1",
+    "vscode-apollo-relay": "^1.5.0"
+  },
+  "dependencies": {
+    "@kleros/components": "^1.0.0-beta.3",
+    "@kleros/icons": "^1.0.0-beta.1",
+    "next": "^10.0.4",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-spring": "^8.0.27",
+    "react-typography": "^0.16.19",
+    "relay-hooks": "^3.7.0",
+    "relay-runtime": "^10.0.1"
+  },
+  "lint-staged": {
+    "*.{graphql,json,md,yaml,yml}": "prettier --write",
+    "*.js": "eslint --fix"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "body-leading-blank": [
+        2,
+        "always"
+      ],
+      "footer-leading-blank": [
+        2,
+        "always"
+      ]
+    }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && npm run depcheck && npm run build && npm run build:graph && npm run changelog && git stage README.md",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "scripts": {
+    "depcheck": "depcheck . --ignores=_pages,subgraph,eslint-import-resolver-alias,@commitlint/cli,@commitlint/config-conventional,electron",
+    "lint": "eslint .",
+    "dev": "next",
+    "dev:relay": "get-graphql-schema https://api.thegraph.com/subgraphs/name/epiqueras/governor-kovan > subgraph/build/full-schema.graphql && get-graphql-schema https://api.thegraph.com/subgraphs/name/epiqueras/governor-kovan --json | node subgraph/eslint-compat.js > subgraph/build/full-schema.json && relay-compiler --watch",
+    "build": "npm run dev:relay -- --watch=false && next build",
+    "build:analyze": "cross-env ANALYZE=true npm run build",
+    "build:graph": "cd subgraph && mustache config/kovan.json subgraph.template.yaml > subgraph.yaml && graph codegen && graph build",
+    "deploy:graph:kovan": "npm run build:graph && cd subgraph && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ epiqueras/governor-kovan",
+    "changelog": "conventional-changelog --infile README.md --same-file --release-count 0 && prettier --write README.md",
+    "ci:depcheck": "npm run depcheck",
+    "ci:prettier": "prettier --ignore-path .gitignore --check .",
+    "ci:lint": "npm run build:graph && npm run build && npm run lint",
+    "ci:commitlint": "git log -1 --pretty=format:\"%s\" | commitlint",
+    "ci": "npm-run-all --parallel ci:**"
+  }
+}

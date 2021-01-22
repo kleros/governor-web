@@ -1,0 +1,24 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Governor
+    network: "{{network}}"
+    source:
+      address: "{{address}}"
+      abi: Governor
+      startBlock: 22001129
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Contract
+      abis:
+        - name: Governor
+          file: ./abis/governor.json
+      eventHandlers:
+        - event: ListSubmitted(indexed uint256,indexed address,indexed uint256,string)
+          handler: listSubmitted
+      file: ./src/mapping.ts
