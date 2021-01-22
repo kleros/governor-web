@@ -18,7 +18,7 @@ dataSources:
       abis:
         - name: Governor
           file: ./abis/governor.json
-      eventHandlers:
-        - event: ListSubmitted(indexed uint256,indexed address,indexed uint256,string)
-          handler: listSubmitted
+      callHandlers:
+        - function: setMetaEvidence(string)
+          handler: setMetaEvidence
       file: ./src/mapping.ts

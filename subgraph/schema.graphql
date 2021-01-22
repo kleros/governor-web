@@ -1,6 +1,267 @@
-type Contract @entity {
+enum Status {
   """
-  The singleton entity's ID, "0".
+  Session has no dispute.
+  """
+  NoDispute
+  """
+  Session has an active dispute.
+  """
+  DisputeCreated
+  """
+  Session has a resolved dispute.
+  """
+  Resolved
+}
+
+type MetaEvidence @entity {
+  """
+  Meta evidence ID.
   """
   id: ID!
+  """
+  URI of the meta evidence file.
+  """
+  URI: String!
+}
+
+type Contract @entity {
+  """
+  Singleton entity ID, "0".
+  """
+  id: ID!
+  """
+  Deployer.
+  """
+  deployer: Bytes!
+  """
+  Sum of reserved ETH for rewards.
+  """
+  reservedETH: BigInt!
+  """
+  Base deposit required for submission.
+  """
+  submissionBaseDeposit: BigInt!
+  """
+  Time in seconds for submission.
+  """
+  submissionTimeout: BigInt!
+  """
+  Time in seconds for execution.
+  """
+  executionTimeout: BigInt!
+  """
+  Time in seconds for withdrawal.
+  """
+  withdrawTimeout: BigInt!
+  """
+  Multiplier for calculating the fee stake that must be paid in a case where there is no winner or loser.
+  """
+  sharedMultiplier: BigInt!
+  """
+  Multiplier for calculating the fee stake paid by the party that won the previous round.
+  """
+  winnerMultiplier: BigInt!
+  """
+  Multiplier for calculating the fee stake paid by the party that lost the previous round.
+  """
+  loserMultiplier: BigInt!
+  """
+  Time of the last approval of a submission.
+  """
+  lastApprovalTime: BigInt!
+  """
+  Number of times the meta evidence has been updated. Used to track the latest meta evidence ID.
+  """
+  metaEvidenceUpdates: BigInt!
+  """
+  First submission that paid appeal fees in the last dispute.
+  """
+  shadowWinner: Submission
+  """
+  The current meta evidence.
+  """
+  metaEvidence: MetaEvidence!
+}
+
+type Session @entity {
+  """
+  Creation time.
+  """
+  creationTime: BigInt!
+  """
+  Session ID.
+  """
+  id: ID!
+  """
+  Ruling, if any.
+  """
+  ruling: BigInt
+  """
+  Dispute ID, if any.
+  """
+  disputeID: BigInt
+  """
+  Total deposits balance. This is used to calculate rewards.
+  """
+  sumDeposit: BigInt!
+  """
+  Status.
+  """
+  status: Status!
+  """
+  Cooldown period after every submission. This gives time for people to inspect and potentially challenge submissions.
+  """
+  durationOffset: BigInt!
+  """
+  Submissions.
+  """
+  submissions: [Submission!]! @derivedFrom(field: "session")
+  """
+  Number of submissions.
+  """
+  submissionsLength: BigInt!
+  """
+  Rounds.
+  """
+  rounds: [Round!]! @derivedFrom(field: "session")
+  """
+  Number of rounds.
+  """
+  roundsLength: BigInt!
+}
+
+type Submission @entity {
+  """
+  Creation time.
+  """
+  creationTime: BigInt!
+  """
+  Session the submission is for.
+  """
+  session: Session!
+  """
+  Submission ID.
+  """
+  id: ID!
+  """
+  Submitter.
+  """
+  submitter: Bytes!
+  """
+  Deposit.
+  """
+  deposit: BigInt!
+  """
+  Transactions hashed in a chain.
+  """
+  listHash: Bytes!
+  """
+  True, if the submission was accepted for execution.
+  """
+  approved: Boolean!
+  """
+  Time when the submission was approved, if any.
+  """
+  approvalTime: BigInt
+  """
+  Transactions.
+  """
+  transactions: [Transaction!]! @derivedFrom(field: "submission")
+  """
+  Number of transactions.
+  """
+  transactionsLength: BigInt!
+}
+
+type Transaction @entity {
+  """
+  Creation time.
+  """
+  creationTime: BigInt!
+  """
+  Submission the transaction is for.
+  """
+  submission: Submission!
+  """
+  Transaction ID, keccak256(submissionID) + submissionTransactionsLength.
+  """
+  id: ID!
+  """
+  Address to call.
+  """
+  target: Bytes!
+  """
+  Value to call with.
+  """
+  value: BigInt!
+  """
+  Data to call with.
+  """
+  data: Bytes!
+  """
+  True, if the transaction was executed.
+  """
+  executed: Boolean!
+}
+
+type Round @entity {
+  """
+  Creation time.
+  """
+  creationTime: BigInt!
+  """
+  Session the round is for.
+  """
+  session: Session!
+  """
+  Round ID, keccak256(sessionID, sessionRoundsLength).
+  """
+  id: ID!
+  """
+  Fees paid by each side in the round.
+  """
+  paidFees: [BigInt!]!
+  """
+  True, for sides that have fully paid their fee.
+  """
+  hasPaid: [Boolean!]!
+  """
+  Sum of reimbursable fees and stake rewards available to the parties that made contributions to the side that ultimately won.
+  """
+  feeRewards: BigInt!
+  """
+  Sum of already reimbursed fees and rewarded stakes.
+  """
+  successfullyPaid: BigInt!
+  """
+  Contributions for the round.
+  """
+  contributions: [Contribution!]! @derivedFrom(field: "round")
+  """
+  Number of contributions.
+  """
+  contributionsLength: BigInt!
+}
+
+type Contribution @entity {
+  """
+  Creation time.
+  """
+  creationTime: BigInt!
+  """
+  Round the contribution is for.
+  """
+  round: Round!
+  """
+  Contribution's ID, keccak256(roundID, contributor).
+  """
+  id: ID!
+  """
+  Address of the contributor.
+  """
+  contributor: Bytes!
+  """
+  Contributions for each side.
+  """
+  values: [BigInt!]!
 }
