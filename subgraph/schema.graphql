@@ -30,6 +30,14 @@ type Contract @entity {
   """
   id: ID!
   """
+  Arbitrator.
+  """
+  arbitrator: Bytes!
+  """
+  Arbitrator extra data.
+  """
+  arbitratorExtraData: Bytes!
+  """
   Deployer.
   """
   deployer: Bytes!

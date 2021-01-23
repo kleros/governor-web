@@ -21,4 +21,22 @@ dataSources:
       callHandlers:
         - function: setMetaEvidence(string)
           handler: setMetaEvidence
+        - function: changeSubmissionDeposit(uint256)
+          handler: changeSubmissionDeposit
+        - function: changeSubmissionTimeout(uint256)
+          handler: changeSubmissionTimeout
+        - function: changeExecutionTimeout(uint256)
+          handler: changeExecutionTimeout
+        - function: changeWithdrawTimeout(uint256)
+          handler: changeWithdrawTimeout
+        - function: changeSharedMultiplier(uint256)
+          handler: changeSharedMultiplier
+        - function: changeWinnerMultiplier(uint256)
+          handler: changeWinnerMultiplier
+        - function: changeLoserMultiplier(uint256)
+          handler: changeLoserMultiplier
+        - function: changeArbitrator(address,bytes)
+          handler: changeArbitrator
+        - function: changeMetaEvidence(string)
+          handler: changeMetaEvidence
       file: ./src/mapping.ts
