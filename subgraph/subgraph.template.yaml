@@ -45,4 +45,6 @@ dataSources:
           handler: withdrawTransactionList
         - function: executeSubmissions()
           handler: executeSubmissions
+        - function: fundAppeal(uint256)
+          handler: fundAppeal
       file: ./src/mapping.ts

@@ -11,6 +11,7 @@ import {
   ChangeWinnerMultiplierCall,
   ChangeWithdrawTimeoutCall,
   ExecuteSubmissionsCall,
+  FundAppealCall,
   Governor,
   SetMetaEvidenceCall,
   SubmitListCall,
@@ -18,19 +19,13 @@ import {
 } from "../generated/Governor/Governor";
 import {
   Contract,
+  Contribution,
   MetaEvidence,
   Round,
   Session,
   Submission,
   Transaction,
 } from "../generated/schema";
-
-function getStatus(status: number): string {
-  if (status == 0) return "NoDispute";
-  if (status == 1) return "DisputeCreated";
-  if (status == 2) return "Resolved";
-  return "Error";
-}
 
 function concatByteArrays(a: ByteArray, b: ByteArray): ByteArray {
   let out = new Uint8Array(a.length + b.length);
@@ -39,21 +34,11 @@ function concatByteArrays(a: ByteArray, b: ByteArray): ByteArray {
   return out as ByteArray;
 }
 
-function newSession(contract: Contract, creationTime: BigInt): Session {
-  let session = new Session(contract.sessionsLength.toHexString());
-  session.creationTime = creationTime;
-  session.sumDeposit = BigInt.fromI32(0);
-  session.status = getStatus(0);
-  session.durationOffset = BigInt.fromI32(0);
-  session.submissionsLength = BigInt.fromI32(0);
-  session.roundsLength = BigInt.fromI32(0);
-  session.save();
-
-  contract.sessionsLength.plus(BigInt.fromI32(1));
-  contract.save();
-
-  // Something is broken with The Graph's null type guards so we need these explicit casts in some places.
-  return session as Session;
+function getStatus(status: number): string {
+  if (status == 0) return "NoDispute";
+  if (status == 1) return "DisputeCreated";
+  if (status == 2) return "Resolved";
+  return "Error";
 }
 
 function initializeContract(
@@ -89,12 +74,29 @@ function initializeContract(
   return contract as Contract;
 }
 
+function newSession(contract: Contract, creationTime: BigInt): Session {
+  let session = new Session(contract.sessionsLength.toHexString());
+  session.creationTime = creationTime;
+  session.sumDeposit = BigInt.fromI32(0);
+  session.status = getStatus(0);
+  session.durationOffset = BigInt.fromI32(0);
+  session.submissionsLength = BigInt.fromI32(0);
+  session.roundsLength = BigInt.fromI32(0);
+  session.save();
+
+  contract.sessionsLength.plus(BigInt.fromI32(1));
+  contract.save();
+
+  // Something is broken with The Graph's null type guards so we need these explicit casts in some places.
+  return session as Session;
+}
+
 function newRound(session: Session, creationTime: BigInt): Round {
   let round = new Round(
     crypto
       .keccak256(
         concatByteArrays(
-          ByteArray.fromUTF8(session.id),
+          ByteArray.fromHexString(session.id),
           ByteArray.fromUTF8(session.roundsLength.toString())
         )
       )
@@ -113,6 +115,49 @@ function newRound(session: Session, creationTime: BigInt): Round {
   session.save();
 
   return round as Round;
+}
+
+function updateContribution(
+  governor: Governor,
+  sessionID: BigInt,
+  roundIndex: BigInt,
+  contributor: Address,
+  time: BigInt
+): Contribution {
+  let roundInfo = governor.getRoundInfo(sessionID, roundIndex);
+  let contributions = governor.getContributions(
+    sessionID,
+    roundIndex,
+    contributor
+  );
+
+  let roundID = crypto.keccak256(
+    concatByteArrays(
+      ByteArray.fromUTF8(sessionID.toString()),
+      ByteArray.fromUTF8(roundIndex.toString())
+    )
+  );
+  let round = Round.load(roundID.toHexString());
+  round.paidFees = roundInfo.value0;
+  round.hasPaid = roundInfo.value1;
+  round.feeRewards = roundInfo.value2;
+  round.successfullyPaid = roundInfo.value3;
+  round.save();
+
+  let contributionID = crypto
+    .keccak256(concatByteArrays(roundID, contributor))
+    .toHexString();
+  let contribution = Contribution.load(contributionID);
+  if (contribution == null) {
+    contribution = new Contribution(contributionID);
+    contribution.creationTime = time;
+    contribution.round = round.id;
+    contribution.contributor = contributor;
+  }
+  contribution.values = contributions;
+  contribution.save();
+
+  return contribution as Contribution;
 }
 
 export function setMetaEvidence(call: SetMetaEvidenceCall): void {
@@ -215,7 +260,7 @@ export function submitList(call: SubmitListCall): void {
   for (let i = 0; i < call.inputs._target.length; i++) {
     let transaction = new Transaction(
       concatByteArrays(
-        crypto.keccak256(ByteArray.fromUTF8(submission.id)),
+        crypto.keccak256(ByteArray.fromHexString(submission.id)),
         ByteArray.fromUTF8(i.toString())
       ).toHexString()
     );
@@ -308,4 +353,27 @@ export function executeSubmissions(call: ExecuteSubmissionsCall): void {
 
     newRound(session as Session, call.block.timestamp);
   }
+}
+
+export function fundAppeal(call: FundAppealCall): void {
+  let governor = Governor.bind(call.to);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
+
+  let sessionID = contract.sessionsLength.minus(BigInt.fromI32(1));
+  let session = Session.load(sessionID.toHexString());
+  updateContribution(
+    governor,
+    sessionID,
+    session.roundsLength.minus(BigInt.fromI32(1)),
+    call.from,
+    call.block.timestamp
+  );
+
+  contract.reservedETH = governor.reservedETH();
+  contract.shadowWinner = governor.shadowWinner().toHexString();
+  contract.save();
+
+  let sessionRoundsNumber = governor.getSessionRoundsNumber(sessionID);
+  if (sessionRoundsNumber.gt(session.roundsLength))
+    newRound(session as Session, call.block.timestamp);
 }
