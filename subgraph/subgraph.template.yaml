@@ -41,4 +41,8 @@ dataSources:
           handler: changeMetaEvidence
         - function: submitList(address[],uint256[],bytes,uint256[],string)
           handler: submitList
+        - function: withdrawTransactionList(uint256,bytes32)
+          handler: withdrawTransactionList
+        - function: executeSubmissions()
+          handler: executeSubmissions
       file: ./src/mapping.ts

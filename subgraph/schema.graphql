@@ -180,6 +180,10 @@ type Submission @entity {
   """
   approvalTime: BigInt
   """
+  True, if the submission was withdrawn.
+  """
+  withdrawn: Boolean!
+  """
   Transactions.
   """
   transactions: [Transaction!]! @derivedFrom(field: "submission")
