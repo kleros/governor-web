@@ -13,8 +13,10 @@ import {
   ExecuteSubmissionsCall,
   FundAppealCall,
   Governor,
+  Ruling,
   SetMetaEvidenceCall,
   SubmitListCall,
+  WithdrawFeesAndRewardsCall,
   WithdrawTransactionListCall,
 } from "../generated/Governor/Governor";
 import {
@@ -77,6 +79,7 @@ function initializeContract(
 function newSession(contract: Contract, creationTime: BigInt): Session {
   let session = new Session(contract.sessionsLength.toHexString());
   session.creationTime = creationTime;
+  session.submittedLists = [];
   session.sumDeposit = BigInt.fromI32(0);
   session.status = getStatus(0);
   session.durationOffset = BigInt.fromI32(0);
@@ -243,12 +246,11 @@ export function submitList(call: SubmitListCall): void {
   let governor = Governor.bind(call.to);
   let contract = initializeContract(call.to, call.from, call.block.timestamp);
 
+  let sessionID = contract.sessionsLength.minus(BigInt.fromI32(1));
   let submission = new Submission(contract.submissionsLength.toHexString());
   let _submission = governor.submissions(contract.submissionsLength);
   submission.creationTime = call.block.timestamp;
-  submission.session = contract.sessionsLength
-    .minus(BigInt.fromI32(1))
-    .toHexString();
+  submission.session = sessionID.toHexString();
   submission.submitter = _submission.value0;
   submission.deposit = _submission.value1;
   submission.listHash = _submission.value2;
@@ -284,6 +286,7 @@ export function submitList(call: SubmitListCall): void {
   contract.save();
 
   let session = Session.load(submission.session);
+  session.submittedLists = governor.getSubmittedLists(sessionID);
   session.sumDeposit = session.sumDeposit.plus(submission.deposit);
   session.submissionsLength = session.submissionsLength.plus(BigInt.fromI32(1));
   if (session.submissionsLength.equals(BigInt.fromI32(1)))
@@ -301,11 +304,17 @@ export function withdrawTransactionList(
   contract.reservedETH = governor.reservedETH();
   contract.save();
 
-  let submission = Submission.load(call.inputs._submissionID.toHexString());
+  let sessionID = contract.sessionsLength.minus(BigInt.fromI32(1));
+  let session = Session.load(sessionID.toHexString());
+
+  let submittedLists = session.submittedLists;
+  let submission = Submission.load(
+    submittedLists[call.inputs._submissionID.toI32()].toHexString()
+  );
   submission.withdrawn = true;
   submission.save();
 
-  let session = Session.load(submission.session);
+  session.submittedLists = governor.getSubmittedLists(sessionID);
   session.sumDeposit = session.sumDeposit.minus(submission.deposit);
   session.save();
 }
@@ -376,4 +385,55 @@ export function fundAppeal(call: FundAppealCall): void {
   let sessionRoundsNumber = governor.getSessionRoundsNumber(sessionID);
   if (sessionRoundsNumber.gt(session.roundsLength))
     newRound(session as Session, call.block.timestamp);
+}
+
+export function withdrawFeesAndRewards(call: WithdrawFeesAndRewardsCall): void {
+  let governor = Governor.bind(call.to);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
+
+  updateContribution(
+    governor,
+    call.inputs._session,
+    call.inputs._round,
+    call.inputs._beneficiary,
+    call.block.timestamp
+  );
+
+  contract.reservedETH = governor.reservedETH();
+  contract.save();
+}
+
+export function ruling(event: Ruling): void {
+  let governor = Governor.bind(event.transaction.to as Address);
+  let contract = initializeContract(
+    event.transaction.to as Address,
+    event.transaction.from,
+    event.block.timestamp
+  );
+
+  let session = Session.load(
+    contract.sessionsLength.minus(BigInt.fromI32(1)).toHexString()
+  );
+
+  if (event.params._ruling.notEqual(BigInt.fromI32(0))) {
+    let submittedLists = session.submittedLists;
+    let submission = Submission.load(
+      submittedLists[event.params._ruling.toI32()].toHexString()
+    );
+    submission.approved = true;
+    submission.approvalTime = event.block.timestamp;
+    submission.save();
+  }
+
+  contract.reservedETH = governor.reservedETH();
+  contract.lastApprovalTime = event.block.timestamp;
+  contract.shadowWinner = governor.shadowWinner().toHexString();
+  contract.save();
+
+  session.ruling = event.params._ruling;
+  session.sumDeposit = BigInt.fromI32(0);
+  session.status = getStatus(2);
+  session.save();
+
+  newSession(contract, event.block.timestamp);
 }

@@ -47,4 +47,9 @@ dataSources:
           handler: executeSubmissions
         - function: fundAppeal(uint256)
           handler: fundAppeal
+        - function: withdrawFeesAndRewards(address,uint256,uint256,uint256)
+          handler: withdrawFeesAndRewards
+      eventHandlers:
+        - event: Ruling(indexed address,indexed uint256,uint256)
+          handler: ruling
       file: ./src/mapping.ts

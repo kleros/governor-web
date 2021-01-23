@@ -117,6 +117,10 @@ type Session @entity {
   """
   disputeID: BigInt
   """
+  IDs of submissions.
+  """
+  submittedLists: [BigInt!]!
+  """
   Total deposits balance. This is used to calculate rewards.
   """
   sumDeposit: BigInt!
