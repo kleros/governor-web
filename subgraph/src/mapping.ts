@@ -1,4 +1,4 @@
-import { Address, ByteArray } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ByteArray, crypto } from "@graphprotocol/graph-ts";
 
 import {
   ChangeArbitratorCall,
@@ -12,8 +12,15 @@ import {
   ChangeWithdrawTimeoutCall,
   Governor,
   SetMetaEvidenceCall,
+  SubmitListCall,
 } from "../generated/Governor/Governor";
-import { Contract, MetaEvidence } from "../generated/schema";
+import {
+  Contract,
+  MetaEvidence,
+  Session,
+  Submission,
+  Transaction,
+} from "../generated/schema";
 
 function getStatus(status: number): string {
   if (status == 0) return "NoDispute";
@@ -29,7 +36,11 @@ function concatByteArrays(a: ByteArray, b: ByteArray): ByteArray {
   return out as ByteArray;
 }
 
-function initializeContract(address: Address, deployer: Address): Contract {
+function initializeContract(
+  address: Address,
+  deployer: Address,
+  creationTime: BigInt
+): Contract {
   let contract = Contract.load("0");
   if (contract != null) return contract as Contract;
   let governor = Governor.bind(address);
@@ -49,13 +60,24 @@ function initializeContract(address: Address, deployer: Address): Contract {
   contract.lastApprovalTime = governor.lastApprovalTime();
   contract.metaEvidenceUpdates = governor.metaEvidenceUpdates();
   contract.metaEvidence = contract.metaEvidenceUpdates.toHexString();
+  contract.sessionsLength = BigInt.fromI32(1);
+  contract.submissionsLength = BigInt.fromI32(0);
   contract.save();
+
+  let session = new Session("0");
+  session.creationTime = creationTime;
+  session.sumDeposit = BigInt.fromI32(0);
+  session.status = getStatus(0);
+  session.durationOffset = BigInt.fromI32(0);
+  session.submissionsLength = BigInt.fromI32(0);
+  session.roundsLength = BigInt.fromI32(0);
+  session.save();
 
   return contract as Contract;
 }
 
 export function setMetaEvidence(call: SetMetaEvidenceCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
 
   let metaEvidence = new MetaEvidence(
     contract.metaEvidenceUpdates.toHexString()
@@ -70,7 +92,7 @@ export function setMetaEvidence(call: SetMetaEvidenceCall): void {
 export function changeSubmissionDeposit(
   call: ChangeSubmissionDepositCall
 ): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.submissionBaseDeposit = call.inputs._submissionBaseDeposit;
   contract.save();
 }
@@ -78,50 +100,50 @@ export function changeSubmissionDeposit(
 export function changeSubmissionTimeout(
   call: ChangeSubmissionTimeoutCall
 ): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.submissionTimeout = call.inputs._submissionTimeout;
   contract.save();
 }
 
 export function changeExecutionTimeout(call: ChangeExecutionTimeoutCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.executionTimeout = call.inputs._executionTimeout;
   contract.save();
 }
 
 export function changeWithdrawTimeout(call: ChangeWithdrawTimeoutCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.withdrawTimeout = call.inputs._withdrawTimeout;
   contract.save();
 }
 
 export function changeSharedMultiplier(call: ChangeSharedMultiplierCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.sharedMultiplier = call.inputs._sharedMultiplier;
   contract.save();
 }
 
 export function changeWinnerMultiplier(call: ChangeWinnerMultiplierCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.winnerMultiplier = call.inputs._winnerMultiplier;
   contract.save();
 }
 
 export function changeLoserMultiplier(call: ChangeLoserMultiplierCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.loserMultiplier = call.inputs._loserMultiplier;
   contract.save();
 }
 
 export function changeArbitrator(call: ChangeArbitratorCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
   contract.arbitrator = call.inputs._arbitrator;
   contract.arbitratorExtraData = call.inputs._arbitratorExtraData;
   contract.save();
 }
 
 export function changeMetaEvidence(call: ChangeMetaEvidenceCall): void {
-  let contract = initializeContract(call.to, call.from);
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
 
   let metaEvidence = new MetaEvidence(
     contract.metaEvidenceUpdates.toHexString()
@@ -131,4 +153,57 @@ export function changeMetaEvidence(call: ChangeMetaEvidenceCall): void {
 
   contract.metaEvidence = metaEvidence.id;
   contract.save();
+}
+
+export function submitList(call: SubmitListCall): void {
+  let contract = initializeContract(call.to, call.from, call.block.timestamp);
+  let governor = Governor.bind(call.to);
+
+  let submission = new Submission(contract.submissionsLength.toHexString());
+  let _submission = governor.submissions(contract.submissionsLength);
+  submission.creationTime = call.block.timestamp;
+  submission.session = contract.sessionsLength
+    .minus(BigInt.fromI32(1))
+    .toHexString();
+  submission.submitter = _submission.value0;
+  submission.deposit = _submission.value1;
+  submission.listHash = _submission.value2;
+  submission.approved = _submission.value4;
+  submission.transactionsLength = BigInt.fromI32(call.inputs._target.length);
+  submission.save();
+
+  for (let i = 0; i < call.inputs._target.length; i++) {
+    let transaction = new Transaction(
+      concatByteArrays(
+        crypto.keccak256(ByteArray.fromUTF8(submission.id)),
+        ByteArray.fromUTF8(i.toString())
+      ).toHexString()
+    );
+    let _transaction = governor.getTransactionInfo(
+      contract.submissionsLength,
+      BigInt.fromI32(i)
+    );
+    transaction.creationTime = call.block.timestamp;
+    transaction.submission = submission.id;
+    transaction.target = _transaction.value0;
+    transaction.value = _transaction.value1;
+    transaction.data = _transaction.value2;
+    transaction.executed = _transaction.value3;
+    transaction.save();
+  }
+
+  contract.reservedETH = governor.reservedETH();
+  contract.submissionsLength = contract.submissionsLength.plus(
+    BigInt.fromI32(1)
+  );
+  contract.save();
+
+  let session = Session.load(submission.session);
+  session.sumDeposit = session.sumDeposit.plus(submission.deposit);
+  session.submissionsLength = session.submissionsLength.plus(BigInt.fromI32(1));
+  if (session.submissionsLength.equals(BigInt.fromI32(1)))
+    session.durationOffset = call.block.timestamp.minus(
+      contract.lastApprovalTime
+    );
+  session.save();
 }

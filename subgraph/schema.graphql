@@ -89,6 +89,14 @@ type Contract @entity {
   The current meta evidence.
   """
   metaEvidence: MetaEvidence!
+  """
+  Number of sessions.
+  """
+  sessionsLength: BigInt!
+  """
+  Number of submissions.
+  """
+  submissionsLength: BigInt!
 }
 
 type Session @entity {

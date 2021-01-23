@@ -39,4 +39,6 @@ dataSources:
           handler: changeArbitrator
         - function: changeMetaEvidence(string)
           handler: changeMetaEvidence
+        - function: submitList(address[],uint256[],bytes,uint256[],string)
+          handler: submitList
       file: ./src/mapping.ts
