@@ -11,6 +11,7 @@ import {
   ChangeWinnerMultiplierCall,
   ChangeWithdrawTimeoutCall,
   ExecuteSubmissionsCall,
+  ExecuteTransactionListCall,
   FundAppealCall,
   Governor,
   Ruling,
@@ -436,4 +437,24 @@ export function ruling(event: Ruling): void {
   session.save();
 
   newSession(contract, event.block.timestamp);
+}
+
+export function executeTransactionList(call: ExecuteTransactionListCall): void {
+  let governor = Governor.bind(call.to);
+
+  let submission = Submission.load(call.inputs._listID.toHexString());
+  for (let i = 0; i < submission.transactionsLength.toI32(); i++) {
+    let transaction = Transaction.load(
+      concatByteArrays(
+        crypto.keccak256(ByteArray.fromHexString(submission.id)),
+        ByteArray.fromUTF8(i.toString())
+      ).toHexString()
+    );
+    let _transaction = governor.getTransactionInfo(
+      call.inputs._listID,
+      BigInt.fromI32(i)
+    );
+    transaction.executed = _transaction.value3;
+    transaction.save();
+  }
 }

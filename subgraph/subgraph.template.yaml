@@ -49,6 +49,8 @@ dataSources:
           handler: fundAppeal
         - function: withdrawFeesAndRewards(address,uint256,uint256,uint256)
           handler: withdrawFeesAndRewards
+        - function: executeTransactionList(uint256,uint256,uint256)
+          handler: executeTransactionList
       eventHandlers:
         - event: Ruling(indexed address,indexed uint256,uint256)
           handler: ruling
