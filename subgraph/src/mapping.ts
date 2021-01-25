@@ -56,7 +56,7 @@ function initializeContract(
   contract = new Contract("0");
   contract.arbitrator = governor.arbitrator();
   contract.arbitratorExtraData = governor.arbitratorExtraData();
-  contract.deployer = contract.deployer || deployer;
+  contract.deployer = deployer;
   contract.reservedETH = governor.reservedETH();
   contract.submissionBaseDeposit = governor.submissionBaseDeposit();
   contract.submissionTimeout = governor.submissionTimeout();
@@ -88,7 +88,7 @@ function newSession(contract: Contract, creationTime: BigInt): Session {
   session.roundsLength = BigInt.fromI32(0);
   session.save();
 
-  contract.sessionsLength.plus(BigInt.fromI32(1));
+  contract.sessionsLength = contract.sessionsLength.plus(BigInt.fromI32(1));
   contract.save();
 
   // Something is broken with The Graph's null type guards so we need these explicit casts in some places.
@@ -100,7 +100,7 @@ function newRound(session: Session, creationTime: BigInt): Round {
     crypto
       .keccak256(
         concatByteArrays(
-          ByteArray.fromHexString(session.id),
+          ByteArray.fromUTF8(session.id),
           ByteArray.fromUTF8(session.roundsLength.toString())
         )
       )
@@ -137,7 +137,7 @@ function updateContribution(
 
   let roundID = crypto.keccak256(
     concatByteArrays(
-      ByteArray.fromUTF8(sessionID.toString()),
+      ByteArray.fromUTF8(sessionID.toHexString()),
       ByteArray.fromUTF8(roundIndex.toString())
     )
   );
@@ -263,7 +263,7 @@ export function submitList(call: SubmitListCall): void {
   for (let i = 0; i < call.inputs._target.length; i++) {
     let transaction = new Transaction(
       concatByteArrays(
-        crypto.keccak256(ByteArray.fromHexString(submission.id)),
+        crypto.keccak256(ByteArray.fromUTF8(submission.id)),
         ByteArray.fromUTF8(i.toString())
       ).toHexString()
     );
@@ -405,7 +405,7 @@ export function withdrawFeesAndRewards(call: WithdrawFeesAndRewardsCall): void {
 }
 
 export function ruling(event: Ruling): void {
-  let governor = Governor.bind(event.transaction.to as Address);
+  let governor = Governor.bind(event.address);
   let contract = initializeContract(
     event.transaction.to as Address,
     event.transaction.from,
@@ -446,7 +446,7 @@ export function executeTransactionList(call: ExecuteTransactionListCall): void {
   for (let i = 0; i < submission.transactionsLength.toI32(); i++) {
     let transaction = Transaction.load(
       concatByteArrays(
-        crypto.keccak256(ByteArray.fromHexString(submission.id)),
+        crypto.keccak256(ByteArray.fromUTF8(submission.id)),
         ByteArray.fromUTF8(i.toString())
       ).toHexString()
     );
