@@ -6,19 +6,18 @@ import {
   NextLink,
   RelayProvider,
   SocialIcons,
-  Text,
   ThemeProvider,
   Web3Provider,
   AccountSettingsPopup as _AccountSettingsPopup,
   createWrapConnection,
   klerosTheme,
 } from "@kleros/components";
-import { SecuredByKleros } from "@kleros/icons";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { animated, useTransition } from "react-spring";
 
 import { indexQuery } from "_pages/index";
+import { WhiteKlerosLogo, WhiteSecuredByKleros } from "icons";
 import Governor from "subgraph/abis/governor";
 import { address } from "subgraph/config/kovan";
 
@@ -70,15 +69,19 @@ const header = {
   left: (
     <NextLink href="/">
       <Link variant="unstyled" sx={{ marginLeft: 1 }}>
-        <Text>KLEROS</Text>
-        <Text>GOVERNOR</Text>
+        <WhiteKlerosLogo height={49} width={148} />
       </Link>
+    </NextLink>
+  ),
+  middle: (
+    <NextLink href="/">
+      <Link variant="unstyled">Governor</Link>
     </NextLink>
   ),
   right: <AccountSettingsPopup />,
 };
 const footer = {
-  left: <SecuredByKleros width={100} />,
+  left: <WhiteSecuredByKleros height={24} width={130} />,
   right: <SocialIcons />,
 };
 const AnimatedBox = animated(Box);

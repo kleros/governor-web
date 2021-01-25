@@ -72,7 +72,7 @@
     }
   },
   "scripts": {
-    "depcheck": "depcheck . --ignores=_pages,subgraph,eslint-import-resolver-alias,@commitlint/cli,@commitlint/config-conventional,electron",
+    "depcheck": "depcheck . --ignores=icons,_pages,subgraph,eslint-import-resolver-alias,@commitlint/cli,@commitlint/config-conventional,electron,@kleros/icons",
     "lint": "eslint .",
     "dev": "next",
     "dev:relay": "get-graphql-schema https://api.thegraph.com/subgraphs/name/epiqueras/governor-kovan > subgraph/build/full-schema.graphql && get-graphql-schema https://api.thegraph.com/subgraphs/name/epiqueras/governor-kovan --json | node subgraph/eslint-compat.js > subgraph/build/full-schema.json && relay-compiler --watch",

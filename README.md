@@ -1,6 +1,7 @@
 ## (2021-01-25)
 
 - chore: build subgraph schema ([9810923](https://github.com/kleros/governor-web/commit/9810923))
+- chore: fix subgraph bugs ([767545d](https://github.com/kleros/governor-web/commit/767545d))
 - chore: generate first changelog ([2e41de7](https://github.com/kleros/governor-web/commit/2e41de7))
 - chore: map appeal funding in subgraph ([990a87d](https://github.com/kleros/governor-web/commit/990a87d))
 - chore: map governance functions in subgraph ([360d007](https://github.com/kleros/governor-web/commit/360d007))

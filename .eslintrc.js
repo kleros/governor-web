@@ -342,6 +342,7 @@ module.exports = {
   settings: {
     "import/resolver": {
       alias: [
+        ["icons", "./icons"],
         ["_pages", "./_pages"],
         ["subgraph", "./subgraph"],
       ],
