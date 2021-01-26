@@ -53,7 +53,7 @@ export default function SessionCard({ contract, session }) {
         </Text>
         <Text>
           <Text as="span" sx={{ fontWeight: "bold" }}>
-            Session:
+            Current Session:
           </Text>{" "}
           Votes approved before{" "}
           <Text as="span">{sessionStart?.toLocaleString()}</Text>

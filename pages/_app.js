@@ -69,7 +69,7 @@ const header = {
   left: (
     <NextLink href="/">
       <Link variant="unstyled" sx={{ marginLeft: 1 }}>
-        <WhiteKlerosLogo height={49} width={148} />
+        <WhiteKlerosLogo height={35} width={105} />
       </Link>
     </NextLink>
   ),
@@ -81,7 +81,7 @@ const header = {
   right: <AccountSettingsPopup />,
 };
 const footer = {
-  left: <WhiteSecuredByKleros height={24} width={130} />,
+  left: <WhiteSecuredByKleros height={20} width={105} />,
   right: <SocialIcons />,
 };
 const AnimatedBox = animated(Box);

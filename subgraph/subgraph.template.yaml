@@ -1,14 +1,15 @@
+# {{=<% %>=}}
 specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: Governor
-    network: "{{network}}"
+    network: "<%network%>"
     source:
-      address: "{{address}}"
+      address: "<%address%>"
       abi: Governor
-      startBlock: 22001129
+      startBlock: <%startBlock%>
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4

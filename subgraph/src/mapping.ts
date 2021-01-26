@@ -407,7 +407,7 @@ export function withdrawFeesAndRewards(call: WithdrawFeesAndRewardsCall): void {
 export function ruling(event: Ruling): void {
   let governor = Governor.bind(event.address);
   let contract = initializeContract(
-    event.transaction.to as Address,
+    event.address,
     event.transaction.from,
     event.block.timestamp
   );
@@ -419,7 +419,9 @@ export function ruling(event: Ruling): void {
   if (event.params._ruling.notEqual(BigInt.fromI32(0))) {
     let submittedLists = session.submittedLists;
     let submission = Submission.load(
-      submittedLists[event.params._ruling.toI32()].toHexString()
+      submittedLists[
+        event.params._ruling.minus(BigInt.fromI32(1)).toI32()
+      ].toHexString()
     );
     submission.approved = true;
     submission.approvalTime = event.block.timestamp;
