@@ -17,12 +17,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { animated, useTransition } from "react-spring";
 
 import { indexQuery } from "_pages/index";
+import { IdQuery } from "_pages/list/[id]";
 import { WhiteKlerosLogo, WhiteSecuredByKleros } from "icons";
 import Governor from "subgraph/abis/governor";
 import { address } from "subgraph/config/kovan";
 
 const queries = {
   "/": indexQuery,
+  "/list/:id": IdQuery,
 };
 const wrapConnection = createWrapConnection(queries, {});
 const contracts = [
@@ -126,11 +128,7 @@ export default function App({ Component, pageProps }) {
     {
       from: { opacity: 0, transform: "translate3d(0%,0,0)" },
       enter: { opacity: 1, transform: "translate3d(0%,0,0)" },
-      leave: {
-        opacity: 0,
-        position: "absolute",
-        transform: "translate3d(-100%,0,0)",
-      },
+      leave: { opacity: 0, transform: "translate3d(-100%,0,0)" },
     }
   );
   return (
@@ -146,9 +144,22 @@ export default function App({ Component, pageProps }) {
           onNetworkChange={onNetworkChange}
         >
           <ArchonProvider>
-            <Layout header={header} footer={footer}>
+            <Layout
+              header={header}
+              mainSx={{ position: "relative" }}
+              footer={footer}
+            >
               {transitions.map(({ key, props, item }) => (
-                <AnimatedBox key={key} style={props} sx={{ padding: 3 }}>
+                <AnimatedBox
+                  key={key}
+                  style={props}
+                  sx={{
+                    height: "100%",
+                    padding: 3,
+                    position: "absolute",
+                    width: "100%",
+                  }}
+                >
                   <item.Component {...item.pageProps} />
                 </AnimatedBox>
               ))}

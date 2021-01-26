@@ -11,3 +11,4 @@
 - chore: map transaction executions in subgraph ([ba77111](https://github.com/kleros/governor-web/commit/ba77111))
 - chore: map withdrawals and rulings in subgraph ([fddd9b7](https://github.com/kleros/governor-web/commit/fddd9b7))
 - chore: set up project and architecture ([d28fb74](https://github.com/kleros/governor-web/commit/d28fb74))
+- chore: subgraph fixes and mainnet deploy ([cd23f52](https://github.com/kleros/governor-web/commit/cd23f52))
